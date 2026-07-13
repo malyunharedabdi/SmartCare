@@ -9,7 +9,7 @@ class Patient(db.Model):
     name = db.Column(db.String(100), nullable=False)
     age = db.Column(db.Integer, nullable=False)
     gender = db.Column(db.String(10), nullable=False)
-    phone = db.Column(db.String(20), unique=True, nullable=False)
+    phone = db.Column(db.String(20))
     email = db.Column(db.String(120), unique=True)
     address = db.Column(db.Text)
     medical_history = db.Column(db.Text)

@@ -1,11 +1,16 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from models.appointment import Appointment
 from models.doctor import Doctor
+from models.user import User
 from app import db
 from datetime import datetime
 
 appointment_bp = Blueprint('appointments', __name__)
+
+def _current_user():
+    """Look up the logged-in User row from the JWT identity (the user id)."""
+    return User.query.get(int(get_jwt_identity()))
 
 @appointment_bp.route('/appointments', methods=['GET'])
 @jwt_required()
@@ -20,7 +25,10 @@ def get_appointments():
 
         # If patient role, only show their own appointments
         if claims.get('role') == 'patient':
-            query = query.filter_by(patient_id=claims.get('user_id'))
+            user = _current_user()
+            if not user or not user.patient:
+                return jsonify([]), 200
+            query = query.filter_by(patient_id=user.patient.id)
 
         if patient_id:
             query = query.filter_by(patient_id=patient_id)
@@ -45,6 +53,16 @@ def create_appointment():
         if not doctor:
             return jsonify({'error': 'Doctor not found'}), 404
 
+        if claims.get('role') == 'patient':
+            user = _current_user()
+            if not user or not user.patient:
+                return jsonify({'error': 'Patient record not found'}), 400
+            patient_id = user.patient.id
+        else:
+            patient_id = data.get('patient_id')
+            if not patient_id:
+                return jsonify({'error': 'patient_id is required'}), 400
+
         appointment_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         appointment_time = datetime.strptime(data['time'], '%H:%M').time()
 
@@ -58,7 +76,7 @@ def create_appointment():
             return jsonify({'error': 'This time slot is already booked'}), 400
 
         appointment = Appointment(
-            patient_id=claims.get('user_id') if claims.get('role') == 'patient' else data.get('patient_id'),
+            patient_id=patient_id,
             doctor_id=data['doctor_id'],
             date=appointment_date,
             time=appointment_time,

@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, make_response
-from flask_jwt_extended import jwt_required, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from models.billing import Billing
 from models.patient import Patient
+from models.user import User
 from app import db
 from datetime import datetime
 import io
@@ -11,6 +12,10 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
 billing_bp = Blueprint('billing', __name__)
+
+def _current_user():
+    """Look up the logged-in User row from the JWT identity (the user id)."""
+    return User.query.get(int(get_jwt_identity()))
 
 @billing_bp.route('/bills', methods=['GET'])
 @jwt_required()
@@ -23,7 +28,10 @@ def get_bills():
         query = Billing.query
 
         if claims.get('role') == 'patient':
-            query = query.filter_by(patient_id=claims.get('user_id'))
+            user = _current_user()
+            if not user or not user.patient:
+                return jsonify([]), 200
+            query = query.filter_by(patient_id=user.patient.id)
 
         if patient_id:
             query = query.filter_by(patient_id=patient_id)

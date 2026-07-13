@@ -1,98 +1,87 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { authAPI } from '../services/api';
 
 const AuthContext = createContext();
 
-/* ---------- Mock users for testing ---------- */
-const MOCK_USERS = [
-    {
-        id: 1,
-        email: 'patient@test.com',
-        password: 'patient123',
-        role: 'patient',
-        name: 'Ayaan Ali',
-        phone: '+252 61 234 5678',
-        address: 'Mogadishu, Somalia',
-        dob: '1990-05-15',
-    },
-    {
-        id: 2,
-        email: 'admin@test.com',
-        password: 'admin123',
-        role: 'admin',
-        name: 'Ahmed Admin',
-    },
-];
-
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
+    const [patient, setPatient] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    // Restore user from localStorage on mount
+    // Restore session from a stored token on mount
     useEffect(() => {
-        const stored = localStorage.getItem('smartcare_user');
-        if (stored) {
+        const token = localStorage.getItem('access_token');
+        const storedUser = localStorage.getItem('smartcare_user');
+        const storedPatient = localStorage.getItem('smartcare_patient');
+
+        if (token && storedUser) {
             try {
-                setUser(JSON.parse(stored));
+                setUser(JSON.parse(storedUser));
+                if (storedPatient) setPatient(JSON.parse(storedPatient));
             } catch {
+                localStorage.removeItem('access_token');
                 localStorage.removeItem('smartcare_user');
+                localStorage.removeItem('smartcare_patient');
             }
         }
         setLoading(false);
     }, []);
 
-    // Save user to localStorage whenever it changes
-    useEffect(() => {
-        if (user) {
-            localStorage.setItem('smartcare_user', JSON.stringify(user));
-        } else {
-            localStorage.removeItem('smartcare_user');
+    const login = async (username, password) => {
+        const res = await authAPI.login({ username, password });
+        const { access_token, user: loggedInUser } = res.data;
+
+        localStorage.setItem('access_token', access_token);
+        localStorage.setItem('smartcare_user', JSON.stringify(loggedInUser));
+        setUser(loggedInUser);
+
+        // Pull the linked patient record (if any) for patient accounts
+        if (loggedInUser.role === 'patient') {
+            try {
+                const profileRes = await authAPI.getProfile();
+                if (profileRes.data.patient) {
+                    localStorage.setItem('smartcare_patient', JSON.stringify(profileRes.data.patient));
+                    setPatient(profileRes.data.patient);
+                }
+            } catch {
+                // non-fatal — dashboard can still refetch as needed
+            }
         }
-    }, [user]);
 
-    const login = (email, password) => {
-        // Find mock user by email
-        const found = MOCK_USERS.find(
-            (u) => u.email === email && u.password === password
-        );
-
-        if (!found) {
-            throw new Error('Invalid email or password');
-        }
-
-        const { password: _, ...safeUser } = found; // remove password from state
-        setUser(safeUser);
-
-        // Redirect based on role
-        if (safeUser.role === 'admin') {
+        if (loggedInUser.role === 'admin') {
             navigate('/admin/dashboard');
         } else {
             navigate('/patient/dashboard');
         }
     };
 
-    const signup = (userData) => {
-        // In a real app, send to API. Here we just simulate.
-        const newUser = {
-            id: Date.now(),
-            email: userData.email,
-            password: userData.password,
-            role: userData.role,
-            name: userData.fullName,
-            phone: userData.phone || '',
-            address: userData.address || '',
-            dob: userData.dob || '',
+    const signup = async (formData) => {
+        const payload = {
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
+            role: formData.role || 'patient',
+            name: formData.name,
+            phone: formData.phone,
+            age: formData.age ? Number(formData.age) : undefined,
+            gender: formData.gender,
         };
 
-        // Add to mock users (won't persist across refreshes – that's fine)
-        MOCK_USERS.push(newUser);
+        const res = await authAPI.register(payload);
+        const { access_token, user: newUser, patient: newPatient } = res.data;
 
-        const { password: _, ...safeUser } = newUser;
-        setUser(safeUser);
+        localStorage.setItem('access_token', access_token);
+        localStorage.setItem('smartcare_user', JSON.stringify(newUser));
+        setUser(newUser);
 
-        // Redirect new user to their dashboard
-        if (safeUser.role === 'admin') {
+        if (newPatient) {
+            localStorage.setItem('smartcare_patient', JSON.stringify(newPatient));
+            setPatient(newPatient);
+        }
+
+        if (newUser.role === 'admin') {
             navigate('/admin/dashboard');
         } else {
             navigate('/patient/dashboard');
@@ -101,12 +90,16 @@ export function AuthProvider({ children }) {
 
     const logout = () => {
         setUser(null);
+        setPatient(null);
+        localStorage.removeItem('access_token');
         localStorage.removeItem('smartcare_user');
+        localStorage.removeItem('smartcare_patient');
         navigate('/');
     };
 
     const value = {
         user,
+        patient,
         login,
         signup,
         logout,
