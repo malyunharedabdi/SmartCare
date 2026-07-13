@@ -29,10 +29,13 @@ def create_app():
     app.register_blueprint(billing_bp, url_prefix='/api')
 
     with app.app_context():
+        # make sure your models are imported here so create_all() sees them
+        from models import patient, doctor, appointment, billing  # adjust to your actual model module names
         db.create_all()
 
     return app
 
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
