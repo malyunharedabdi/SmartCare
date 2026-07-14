@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarCheck, Clock, FileText, Activity } from 'lucide-react';
+import { CalendarCheck, Clock, FileText, Hourglass } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { appointmentAPI } from '../services/api';
 
@@ -8,9 +8,9 @@ const PatientDashboard = () => {
     const { user } = useAuth();
     const [stats, setStats] = useState({
         upcoming: 0,
+        pending: 0,
         past: 0,
         prescriptions: 0,
-        labReports: 0,
     });
     const [upcomingAppts, setUpcomingAppts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -21,13 +21,15 @@ const PatientDashboard = () => {
                 const res = await appointmentAPI.getAll();
                 const appointments = res.data;
                 const upcoming = appointments.filter(a => a.status === 'scheduled');
+                const pending = appointments.filter(a => a.status === 'pending');
                 const past = appointments.filter(a => a.status === 'completed');
+                const prescriptions = past.filter(a => a.prescription).length;
 
                 setStats({
                     upcoming: upcoming.length,
+                    pending: pending.length,
                     past: past.length,
-                    prescriptions: 0,   // will need a prescriptions endpoint later
-                    labReports: 0,      // will need a lab reports endpoint later
+                    prescriptions,
                 });
                 setUpcomingAppts(upcoming.slice(0, 3)); // show max 3 upcoming
             } catch (err) {
@@ -41,9 +43,9 @@ const PatientDashboard = () => {
 
     const statCards = [
         { icon: CalendarCheck, label: 'Upcoming Appointments', value: stats.upcoming },
+        { icon: Hourglass, label: 'Awaiting Approval', value: stats.pending },
         { icon: Clock, label: 'Past Visits', value: stats.past },
         { icon: FileText, label: 'Prescriptions', value: stats.prescriptions },
-        { icon: Activity, label: 'Lab Reports', value: stats.labReports },
     ];
 
     if (loading) {

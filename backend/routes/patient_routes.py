@@ -45,8 +45,8 @@ def create_patient():
             name=data['name'],
             age=data['age'],
             gender=data['gender'],
-            phone=data['phone'],
-            email=data.get('email'),
+            phone=data.get('phone') or '',
+            email=data.get('email') or None,
             address=data.get('address'),
             medical_history=data.get('medical_history'),
             blood_group=data.get('blood_group'),
@@ -70,7 +70,7 @@ def update_patient(id):
         patient.age = data.get('age', patient.age)
         patient.gender = data.get('gender', patient.gender)
         patient.phone = data.get('phone', patient.phone)
-        patient.email = data.get('email', patient.email)
+        patient.email = (data.get('email') or None) if 'email' in data else patient.email
         patient.address = data.get('address', patient.address)
         patient.medical_history = data.get('medical_history', patient.medical_history)
         patient.blood_group = data.get('blood_group', patient.blood_group)

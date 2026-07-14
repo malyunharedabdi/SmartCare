@@ -1,74 +1,116 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Edit2, Trash2, UserPlus, X } from 'lucide-react';
+import { Search, Edit2, Trash2, UserPlus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { doctorAPI } from '../services/api';
 
-const initialDoctors = [
-    { id: 1, name: 'Dr. Ayaan Ali', specialization: 'Cardiologist' },
-    { id: 2, name: 'Dr. Mohamed Hassan', specialization: 'Neurologist' },
-    { id: 3, name: 'Dr. Fatima Nur', specialization: 'Pediatrician' },
-    { id: 4, name: 'Dr. Ahmed Abdullahi', specialization: 'Orthopedic Surgeon' },
-    { id: 5, name: 'Dr. Halima Yusuf', specialization: 'Dermatologist' },
-    { id: 6, name: 'Dr. Omar Abdi', specialization: 'Ophthalmologist' },
-];
+const emptyForm = {
+    name: '',
+    specialization: '',
+    email: '',
+    phone: '',
+    department: '',
+    qualification: '',
+    experience: '',
+    consultation_fee: '',
+};
 
 const Doctors = () => {
-    const [doctors, setDoctors] = useState(initialDoctors);
+    const [doctors, setDoctors] = useState([]);
     const [search, setSearch] = useState('');
+    const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editDoctor, setEditDoctor] = useState(null);
+    const [formData, setFormData] = useState(emptyForm);
 
-    const [formData, setFormData] = useState({ name: '', specialization: '' });
+    const fetchDoctors = async () => {
+        try {
+            const res = await doctorAPI.getAll();
+            setDoctors(res.data);
+        } catch (err) {
+            toast.error('Failed to load doctors');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    // Filter doctors based on search
+    useEffect(() => {
+        fetchDoctors();
+    }, []);
+
     const filteredDoctors = doctors.filter(
         (doc) =>
             doc.name.toLowerCase().includes(search.toLowerCase()) ||
             doc.specialization.toLowerCase().includes(search.toLowerCase())
     );
 
-    // Open modal for add/edit
     const openAddModal = () => {
         setEditDoctor(null);
-        setFormData({ name: '', specialization: '' });
+        setFormData(emptyForm);
         setShowModal(true);
     };
 
     const openEditModal = (doctor) => {
         setEditDoctor(doctor);
-        setFormData({ name: doctor.name, specialization: doctor.specialization });
+        setFormData({
+            name: doctor.name || '',
+            specialization: doctor.specialization || '',
+            email: doctor.email || '',
+            phone: doctor.phone || '',
+            department: doctor.department || '',
+            qualification: doctor.qualification || '',
+            experience: doctor.experience ?? '',
+            consultation_fee: doctor.consultation_fee ?? '',
+        });
         setShowModal(true);
     };
 
-    // Handle form submit
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.name.trim() || !formData.specialization.trim()) return;
-
-        if (editDoctor) {
-            // Update existing doctor
-            setDoctors(
-                doctors.map((doc) =>
-                    doc.id === editDoctor.id ? { ...doc, ...formData } : doc
-                )
-            );
-        } else {
-            // Add new doctor
-            const newDoctor = {
-                id: Date.now(),
-                name: formData.name,
-                specialization: formData.specialization,
-            };
-            setDoctors([...doctors, newDoctor]);
+        if (!formData.name.trim() || !formData.specialization.trim() || !formData.email.trim() || !formData.phone.trim()) {
+            toast.error('Name, specialization, email and phone are required');
+            return;
         }
-        setShowModal(false);
-    };
 
-    // Delete doctor
-    const deleteDoctor = (id) => {
-        if (window.confirm('Delete this doctor?')) {
-            setDoctors(doctors.filter((doc) => doc.id !== id));
+        const payload = {
+            ...formData,
+            experience: formData.experience === '' ? undefined : Number(formData.experience),
+            consultation_fee: formData.consultation_fee === '' ? undefined : Number(formData.consultation_fee),
+        };
+
+        try {
+            if (editDoctor) {
+                await doctorAPI.update(editDoctor.id, payload);
+                toast.success('Doctor updated');
+            } else {
+                await doctorAPI.create(payload);
+                toast.success('Doctor added');
+            }
+            setShowModal(false);
+            fetchDoctors();
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to save doctor');
         }
     };
+
+    const deleteDoctor = async (id) => {
+        if (!window.confirm('Delete this doctor?')) return;
+        try {
+            await doctorAPI.delete(id);
+            toast.success('Doctor deleted');
+            fetchDoctors();
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to delete doctor');
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -102,13 +144,15 @@ const Doctors = () => {
                         <tr>
                             <th className="py-3 pr-4">Name</th>
                             <th className="py-3 pr-4">Specialization</th>
+                            <th className="py-3 pr-4">Email</th>
+                            <th className="py-3 pr-4">Phone</th>
                             <th className="py-3">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredDoctors.length === 0 && (
                             <tr>
-                                <td colSpan={3} className="py-6 text-center text-gray-500">
+                                <td colSpan={5} className="py-6 text-center text-gray-500">
                                     No doctors found
                                 </td>
                             </tr>
@@ -122,6 +166,8 @@ const Doctors = () => {
                                     {doc.name}
                                 </td>
                                 <td className="py-3 pr-4">{doc.specialization}</td>
+                                <td className="py-3 pr-4">{doc.email}</td>
+                                <td className="py-3 pr-4">{doc.phone}</td>
                                 <td className="py-3">
                                     <div className="flex items-center gap-2">
                                         <button
@@ -158,7 +204,7 @@ const Doctors = () => {
                             initial={{ scale: 0.9 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0.9 }}
-                            className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-2xl"
+                            className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-4">
@@ -180,9 +226,7 @@ const Doctors = () => {
                                     <input
                                         type="text"
                                         value={formData.name}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, name: e.target.value })
-                                        }
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         className="input-field"
                                         placeholder="Dr. Ayaan Ali"
                                         required
@@ -195,13 +239,88 @@ const Doctors = () => {
                                     <input
                                         type="text"
                                         value={formData.specialization}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, specialization: e.target.value })
-                                        }
+                                        onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
                                         className="input-field"
                                         placeholder="Cardiologist"
                                         required
                                     />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="input-field"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Phone
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            className="input-field"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Department
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.department}
+                                            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                                            className="input-field"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Qualification
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.qualification}
+                                            onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
+                                            className="input-field"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Years of Experience
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={formData.experience}
+                                            onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                                            className="input-field"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Consultation Fee ($)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={formData.consultation_fee}
+                                            onChange={(e) => setFormData({ ...formData, consultation_fee: e.target.value })}
+                                            className="input-field"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="flex gap-3">
                                     <button type="submit" className="btn-primary w-full justify-center">

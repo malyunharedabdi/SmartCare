@@ -58,10 +58,12 @@ def create_appointment():
             if not user or not user.patient:
                 return jsonify({'error': 'Patient record not found'}), 400
             patient_id = user.patient.id
+            initial_status = 'pending'  # patient self-bookings need admin approval
         else:
             patient_id = data.get('patient_id')
             if not patient_id:
                 return jsonify({'error': 'patient_id is required'}), 400
+            initial_status = 'scheduled'  # admin-created appointments are confirmed directly
 
         appointment_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         appointment_time = datetime.strptime(data['time'], '%H:%M').time()
@@ -82,7 +84,7 @@ def create_appointment():
             time=appointment_time,
             symptoms=data.get('symptoms'),
             notes=data.get('notes'),
-            status='scheduled'
+            status=initial_status
         )
         db.session.add(appointment)
         db.session.commit()
@@ -97,15 +99,23 @@ def create_appointment():
 def update_status(id):
     try:
         claims = get_jwt()
-        if claims.get('role') != 'admin':
-            return jsonify({'error': 'Unauthorized'}), 403
-
         appointment = Appointment.query.get_or_404(id)
         data = request.get_json()
         new_status = data.get('status')
 
-        if new_status not in ['scheduled', 'completed', 'cancelled']:
+        if new_status not in ['pending', 'scheduled', 'completed', 'cancelled', 'rejected']:
             return jsonify({'error': 'Invalid status'}), 400
+
+        if claims.get('role') == 'patient':
+            user = _current_user()
+            if not user or not user.patient or appointment.patient_id != user.patient.id:
+                return jsonify({'error': 'Unauthorized'}), 403
+            if new_status != 'cancelled':
+                return jsonify({'error': 'Patients can only cancel appointments'}), 403
+            if appointment.status in ('completed', 'cancelled', 'rejected'):
+                return jsonify({'error': f'Cannot cancel a {appointment.status} appointment'}), 400
+        elif claims.get('role') != 'admin':
+            return jsonify({'error': 'Unauthorized'}), 403
 
         appointment.status = new_status
         db.session.commit()
@@ -119,9 +129,18 @@ def update_status(id):
 @jwt_required()
 def reschedule(id):
     try:
+        claims = get_jwt()
         appointment = Appointment.query.get_or_404(id)
-        data = request.get_json()
 
+        if claims.get('role') == 'patient':
+            user = _current_user()
+            if not user or not user.patient or appointment.patient_id != user.patient.id:
+                return jsonify({'error': 'Unauthorized'}), 403
+
+        if appointment.status in ('completed', 'cancelled', 'rejected'):
+            return jsonify({'error': f'Cannot reschedule a {appointment.status} appointment'}), 400
+
+        data = request.get_json()
         new_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         new_time = datetime.strptime(data['time'], '%H:%M').time()
 
@@ -136,7 +155,12 @@ def reschedule(id):
 
         appointment.date = new_date
         appointment.time = new_time
-        appointment.status = 'scheduled'
+
+        if claims.get('role') == 'patient':
+            # Patient changed the request — needs admin re-approval
+            appointment.status = 'pending'
+        # Admin reschedule: leave status as-is (an already-scheduled appointment stays scheduled)
+
         db.session.commit()
 
         return jsonify({'message': 'Appointment rescheduled', 'appointment': appointment.to_dict()}), 200

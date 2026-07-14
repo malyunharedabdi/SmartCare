@@ -1,68 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, CheckCircle, XCircle, Edit3, Calendar } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Edit3, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { appointmentAPI } from '../services/api';
 
-const initialAppointments = [
-    {
-        id: 1,
-        patient: 'Ayaan Ali',
-        doctor: 'Dr. Fatima Nur',
-        date: '2025-01-12',
-        time: '10:00 AM',
-        status: 'pending',
-    },
-    {
-        id: 2,
-        patient: 'Mohamed Hassan',
-        doctor: 'Dr. Ayaan Ali',
-        date: '2025-01-12',
-        time: '11:00 AM',
-        status: 'confirmed',
-    },
-    {
-        id: 3,
-        patient: 'Halima Yusuf',
-        doctor: 'Dr. Omar Abdi',
-        date: '2025-01-12',
-        time: '2:30 PM',
-        status: 'cancelled',
-    },
-    {
-        id: 4,
-        patient: 'Ahmed Abdullahi',
-        doctor: 'Dr. Mohamed Hassan',
-        date: '2025-01-13',
-        time: '9:00 AM',
-        status: 'pending',
-    },
-    {
-        id: 5,
-        patient: 'Fatima Nur',
-        doctor: 'Dr. Ahmed Abdullahi',
-        date: '2025-01-14',
-        time: '3:00 PM',
-        status: 'confirmed',
-    },
-];
+const statusStyle = {
+    pending: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    scheduled: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    completed: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+    cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
 
 const Appointments = () => {
-    const [appointments, setAppointments] = useState(initialAppointments);
+    const [appointments, setAppointments] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [rescheduleId, setRescheduleId] = useState(null);
     const [newDate, setNewDate] = useState('');
     const [newTime, setNewTime] = useState('');
 
+    const fetchAppointments = async () => {
+        try {
+            const res = await appointmentAPI.getAll();
+            setAppointments(res.data);
+        } catch (err) {
+            toast.error('Failed to load appointments');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAppointments();
+    }, []);
+
+    const pending = appointments.filter((a) => a.status === 'pending');
+
     const filtered = appointments.filter((apt) => {
         const matchesSearch =
-            apt.patient.toLowerCase().includes(search.toLowerCase()) ||
-            apt.doctor.toLowerCase().includes(search.toLowerCase());
+            (apt.patient_name || '').toLowerCase().includes(search.toLowerCase()) ||
+            (apt.doctor_name || '').toLowerCase().includes(search.toLowerCase());
         const matchesStatus = filterStatus === 'all' || apt.status === filterStatus;
         return matchesSearch && matchesStatus;
     });
 
-    const updateStatus = (id, status) => {
-        setAppointments(appointments.map((a) => (a.id === id ? { ...a, status } : a)));
+    const updateStatus = async (id, status, successMsg) => {
+        try {
+            await appointmentAPI.updateStatus(id, status);
+            toast.success(successMsg);
+            fetchAppointments();
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to update status');
+        }
+    };
+
+    const deleteAppointment = async (id) => {
+        if (!window.confirm('Permanently delete this appointment? This cannot be undone.')) return;
+        try {
+            await appointmentAPI.delete(id);
+            toast.success('Appointment deleted');
+            fetchAppointments();
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to delete');
+        }
     };
 
     const startReschedule = (apt) => {
@@ -71,16 +73,24 @@ const Appointments = () => {
         setNewTime(apt.time);
     };
 
-    const saveReschedule = () => {
-        setAppointments(
-            appointments.map((a) =>
-                a.id === rescheduleId
-                    ? { ...a, date: newDate, time: newTime, status: 'confirmed' }
-                    : a
-            )
-        );
-        setRescheduleId(null);
+    const saveReschedule = async () => {
+        try {
+            await appointmentAPI.reschedule(rescheduleId, { date: newDate, time: newTime });
+            toast.success('Rescheduled');
+            setRescheduleId(null);
+            fetchAppointments();
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to reschedule');
+        }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -106,11 +116,54 @@ const Appointments = () => {
                     >
                         <option value="all">All</option>
                         <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
+                        <option value="rejected">Rejected</option>
                     </select>
                 </div>
             </div>
+
+            {/* Pending approval queue */}
+            {pending.length > 0 && (
+                <div className="card border-l-4 border-blue-500">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                        Awaiting Approval ({pending.length})
+                    </h2>
+                    <div className="space-y-3">
+                        {pending.map((apt) => (
+                            <div
+                                key={apt.id}
+                                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-3 last:border-0 last:pb-0"
+                            >
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-white">
+                                        {apt.patient_name} <span className="text-gray-400">→</span> {apt.doctor_name}
+                                    </p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {new Date(apt.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {apt.time}
+                                        {apt.symptoms ? ` • ${apt.symptoms}` : ''}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => updateStatus(apt.id, 'scheduled', 'Appointment approved')}
+                                        className="btn-primary text-xs py-1.5 px-3"
+                                    >
+                                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                                    </button>
+                                    <button
+                                        onClick={() => updateStatus(apt.id, 'rejected', 'Appointment rejected')}
+                                        className="btn-secondary text-xs py-1.5 px-3 text-red-600"
+                                    >
+                                        <XCircle className="w-4 h-4 mr-1" /> Reject
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="card overflow-x-auto">
                 <table className="w-full text-left text-sm">
@@ -138,9 +191,9 @@ const Appointments = () => {
                                 className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                             >
                                 <td className="py-3 pr-4 text-gray-900 dark:text-white font-medium">
-                                    {apt.patient}
+                                    {apt.patient_name}
                                 </td>
-                                <td className="py-3 pr-4">{apt.doctor}</td>
+                                <td className="py-3 pr-4">{apt.doctor_name}</td>
                                 <td className="py-3 pr-4">
                                     {new Date(apt.date).toLocaleDateString('en-US', {
                                         month: 'short',
@@ -151,11 +204,7 @@ const Appointments = () => {
                                 <td className="py-3 pr-4">{apt.time}</td>
                                 <td className="py-3 pr-4">
                                     <span
-                                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${apt.status === 'confirmed'
-                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                : apt.status === 'pending'
-                                                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusStyle[apt.status] || statusStyle.pending
                                             }`}
                                     >
                                         {apt.status}
@@ -163,33 +212,38 @@ const Appointments = () => {
                                 </td>
                                 <td className="py-3">
                                     <div className="flex items-center gap-1">
-                                        {apt.status === 'pending' && (
+                                        {apt.status === 'scheduled' && (
                                             <>
                                                 <button
-                                                    onClick={() => updateStatus(apt.id, 'confirmed')}
+                                                    onClick={() => updateStatus(apt.id, 'completed', 'Marked as completed')}
                                                     className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                                                    title="Approve"
+                                                    title="Mark completed"
                                                 >
                                                     <CheckCircle className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => updateStatus(apt.id, 'cancelled')}
+                                                    onClick={() => updateStatus(apt.id, 'cancelled', 'Appointment cancelled')}
                                                     className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                    title="Deny"
+                                                    title="Cancel"
                                                 >
                                                     <XCircle className="w-4 h-4" />
                                                 </button>
+                                                <button
+                                                    onClick={() => startReschedule(apt)}
+                                                    className="p-1.5 text-gray-400 hover:text-primary transition-colors"
+                                                    title="Reschedule"
+                                                >
+                                                    <Edit3 className="w-4 h-4" />
+                                                </button>
                                             </>
                                         )}
-                                        {apt.status !== 'cancelled' && (
-                                            <button
-                                                onClick={() => startReschedule(apt)}
-                                                className="p-1.5 text-gray-400 hover:text-primary transition-colors"
-                                                title="Reschedule"
-                                            >
-                                                <Edit3 className="w-4 h-4" />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => deleteAppointment(apt.id)}
+                                            className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                                            title="Delete permanently"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
                                     {/* Inline reschedule */}
                                     <AnimatePresence>

@@ -1,10 +1,10 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     Users,
     UserPlus,
     CalendarCheck,
     DollarSign,
-    TrendingUp,
 } from 'lucide-react';
 import {
     AreaChart,
@@ -15,33 +15,84 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from 'recharts';
+import { patientAPI, doctorAPI, appointmentAPI, billingAPI } from '../services/api';
 
-// Mock data for charts
-const revenueData = [
-    { month: 'Jan', revenue: 4000 },
-    { month: 'Feb', revenue: 3000 },
-    { month: 'Mar', revenue: 5000 },
-    { month: 'Apr', revenue: 4780 },
-    { month: 'May', revenue: 5890 },
-    { month: 'Jun', revenue: 4390 },
-    { month: 'Jul', revenue: 6000 },
-];
-
-const stats = [
-    { icon: Users, label: 'Total Patients', value: '1,248', change: '+12%' },
-    { icon: UserPlus, label: 'Total Doctors', value: '42', change: '+3%' },
-    { icon: CalendarCheck, label: 'Appointments', value: '156', change: '+8%' },
-    { icon: DollarSign, label: 'Revenue', value: '$48,290', change: '+15%' },
-];
-
-const recentAppointments = [
-    { id: 1, patient: 'Ayaan Ali', doctor: 'Dr. Fatima Nur', date: '2025-01-12', time: '10:00 AM', status: 'confirmed' },
-    { id: 2, patient: 'Mohamed Hassan', doctor: 'Dr. Ayaan Ali', date: '2025-01-12', time: '11:00 AM', status: 'pending' },
-    { id: 3, patient: 'Halima Yusuf', doctor: 'Dr. Omar Abdi', date: '2025-01-12', time: '2:30 PM', status: 'cancelled' },
-    { id: 4, patient: 'Ahmed Abdullahi', doctor: 'Dr. Mohamed Hassan', date: '2025-01-13', time: '9:00 AM', status: 'confirmed' },
-];
+const statusStyle = {
+    pending: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    scheduled: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+    completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
 
 const AdminDashboard = () => {
+    const [loading, setLoading] = useState(true);
+    const [counts, setCounts] = useState({ patients: 0, doctors: 0, appointments: 0, revenue: 0 });
+    const [recentAppointments, setRecentAppointments] = useState([]);
+    const [revenueData, setRevenueData] = useState([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [patientsRes, doctorsRes, appointmentsRes, billsRes] = await Promise.all([
+                    patientAPI.getAll(),
+                    doctorAPI.getAll(),
+                    appointmentAPI.getAll(),
+                    billingAPI.getAll(),
+                ]);
+
+                const appointments = appointmentsRes.data;
+                const bills = billsRes.data;
+
+                const totalRevenue = bills
+                    .filter((b) => b.payment_status === 'paid')
+                    .reduce((sum, b) => sum + (b.total_amount || 0), 0);
+
+                setCounts({
+                    patients: patientsRes.data.length,
+                    doctors: doctorsRes.data.length,
+                    appointments: appointments.length,
+                    revenue: totalRevenue,
+                });
+
+                const sorted = [...appointments].sort(
+                    (a, b) => new Date(b.date) - new Date(a.date)
+                );
+                setRecentAppointments(sorted.slice(0, 5));
+
+                // Group paid bill revenue by month for the chart
+                const byMonth = {};
+                bills
+                    .filter((b) => b.payment_status === 'paid' && b.payment_date)
+                    .forEach((b) => {
+                        const month = new Date(b.payment_date).toLocaleString('en-US', { month: 'short' });
+                        byMonth[month] = (byMonth[month] || 0) + (b.total_amount || 0);
+                    });
+                setRevenueData(Object.entries(byMonth).map(([month, revenue]) => ({ month, revenue })));
+            } catch (err) {
+                console.error('Failed to load admin dashboard data', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const stats = [
+        { icon: Users, label: 'Total Patients', value: counts.patients },
+        { icon: UserPlus, label: 'Total Doctors', value: counts.doctors },
+        { icon: CalendarCheck, label: 'Appointments', value: counts.appointments },
+        { icon: DollarSign, label: 'Revenue', value: `$${counts.revenue.toFixed(2)}` },
+    ];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -62,9 +113,6 @@ const AdminDashboard = () => {
                             <div className="p-2 bg-primary/10 rounded-lg">
                                 <s.icon className="w-6 h-6 text-primary" />
                             </div>
-                            <span className="text-xs font-medium text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded-full">
-                                {s.change}
-                            </span>
                         </div>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white mt-3">
                             {s.value}
@@ -79,27 +127,31 @@ const AdminDashboard = () => {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     Revenue Overview
                 </h2>
-                <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={revenueData}>
-                        <defs>
-                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#0096C7" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#0096C7" stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis dataKey="month" stroke="#6b7280" />
-                        <YAxis stroke="#6b7280" />
-                        <Tooltip />
-                        <Area
-                            type="monotone"
-                            dataKey="revenue"
-                            stroke="#0096C7"
-                            fillOpacity={1}
-                            fill="url(#colorRevenue)"
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
+                {revenueData.length === 0 ? (
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">No paid bills yet.</p>
+                ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                        <AreaChart data={revenueData}>
+                            <defs>
+                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#0096C7" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#0096C7" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="month" stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" />
+                            <Tooltip />
+                            <Area
+                                type="monotone"
+                                dataKey="revenue"
+                                stroke="#0096C7"
+                                fillOpacity={1}
+                                fill="url(#colorRevenue)"
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                )}
             </div>
 
             {/* Recent Appointments */}
@@ -119,19 +171,22 @@ const AdminDashboard = () => {
                             </tr>
                         </thead>
                         <tbody>
+                            {recentAppointments.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="py-6 text-center text-gray-500">
+                                        No appointments yet
+                                    </td>
+                                </tr>
+                            )}
                             {recentAppointments.map((apt) => (
                                 <tr key={apt.id} className="border-b border-gray-100 dark:border-gray-800">
-                                    <td className="py-3 pr-4 text-gray-900 dark:text-white">{apt.patient}</td>
-                                    <td className="py-3 pr-4">{apt.doctor}</td>
+                                    <td className="py-3 pr-4 text-gray-900 dark:text-white">{apt.patient_name}</td>
+                                    <td className="py-3 pr-4">{apt.doctor_name}</td>
                                     <td className="py-3 pr-4">{apt.date}</td>
                                     <td className="py-3 pr-4">{apt.time}</td>
                                     <td className="py-3">
                                         <span
-                                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${apt.status === 'confirmed'
-                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                    : apt.status === 'pending'
-                                                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusStyle[apt.status] || statusStyle.scheduled
                                                 }`}
                                         >
                                             {apt.status}

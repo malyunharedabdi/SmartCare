@@ -8,6 +8,7 @@ import {
     Settings,
     LogOut,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const links = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -18,6 +19,8 @@ const links = [
 ];
 
 const AdminSidebar = () => {
+    const { logout } = useAuth();
+
     return (
         <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-screen sticky top-16 flex flex-col">
             <div className="p-6">
@@ -41,7 +44,10 @@ const AdminSidebar = () => {
                 ))}
             </nav>
             <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-                <button className="flex items-center gap-3 text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors w-full px-4 py-2 rounded-lg text-sm font-medium">
+                <button
+                    onClick={logout}
+                    className="flex items-center gap-3 text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors w-full px-4 py-2 rounded-lg text-sm font-medium"
+                >
                     <LogOut className="w-5 h-5" />
                     Logout
                 </button>

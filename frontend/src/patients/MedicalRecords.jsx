@@ -1,143 +1,173 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Download, Eye, Activity, Clipboard } from 'lucide-react';
-
-const records = [
-    {
-        id: 1,
-        type: 'Lab Report',
-        title: 'Complete Blood Count (CBC)',
-        date: '2025-01-05',
-        doctor: 'Dr. Fatima Nur',
-        status: 'final',
-        file: '#',
-    },
-    {
-        id: 2,
-        type: 'Prescription',
-        title: 'Amoxicillin 500mg',
-        date: '2025-01-05',
-        doctor: 'Dr. Fatima Nur',
-        status: 'active',
-        file: '#',
-    },
-    {
-        id: 3,
-        type: 'Imaging',
-        title: 'Chest X-Ray',
-        date: '2024-12-20',
-        doctor: 'Dr. Ayaan Ali',
-        status: 'final',
-        file: '#',
-    },
-    {
-        id: 4,
-        type: 'Vaccination',
-        title: 'COVID-19 Booster',
-        date: '2024-11-15',
-        doctor: 'Dr. Omar Abdi',
-        status: 'completed',
-        file: '#',
-    },
-];
+import { FileText, Download, Activity, Clipboard, Receipt } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { appointmentAPI, billingAPI } from '../services/api';
 
 const MedicalRecords = () => {
-    const [selectedRecord, setSelectedRecord] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [visits, setVisits] = useState([]);
+    const [bills, setBills] = useState([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [apptRes, billsRes] = await Promise.all([
+                    appointmentAPI.getAll(),
+                    billingAPI.getAll(),
+                ]);
+                const completed = apptRes.data.filter((a) => a.status === 'completed');
+                setVisits(completed);
+                setBills(billsRes.data);
+            } catch (err) {
+                toast.error('Failed to load medical records');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const downloadReceipt = async (billId, invoiceNumber) => {
+        try {
+            const res = await billingAPI.getReceipt(billId);
+            const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `receipt_${invoiceNumber}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            toast.error('Failed to download receipt');
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Medical Records
             </h1>
 
-            <div className="grid gap-4">
-                {records.map((record) => (
-                    <motion.div
-                        key={record.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="card flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                    >
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                                {record.type === 'Lab Report' ? (
-                                    <Activity className="w-5 h-5 text-primary" />
-                                ) : record.type === 'Prescription' ? (
-                                    <Clipboard className="w-5 h-5 text-primary" />
-                                ) : (
-                                    <FileText className="w-5 h-5 text-primary" />
-                                )}
+            {/* Completed visits with diagnosis / prescription */}
+            <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Visit History
+                </h2>
+                <div className="grid gap-4">
+                    {visits.length === 0 && (
+                        <p className="text-gray-500 dark:text-gray-400 text-center py-6">
+                            No completed visits yet.
+                        </p>
+                    )}
+                    {visits.map((visit) => (
+                        <motion.div
+                            key={visit.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="card flex flex-col sm:flex-row sm:items-start gap-4"
+                        >
+                            <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                                <Activity className="w-5 h-5 text-primary" />
                             </div>
-                            <div>
+                            <div className="flex-1">
                                 <h3 className="font-semibold text-gray-900 dark:text-white">
-                                    {record.title}
+                                    Visit with {visit.doctor_name}
                                 </h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {record.type} • {record.doctor}
-                                </p>
                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                    {new Date(record.date).toLocaleDateString('en-US', {
+                                    {new Date(visit.date).toLocaleDateString('en-US', {
                                         year: 'numeric',
                                         month: 'short',
                                         day: 'numeric',
                                     })}
                                 </p>
+                                {visit.symptoms && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                                        <strong>Symptoms:</strong> {visit.symptoms}
+                                    </p>
+                                )}
+                                {visit.diagnosis && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                                        <strong>Diagnosis:</strong> {visit.diagnosis}
+                                    </p>
+                                )}
+                                {visit.prescription && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 flex items-start gap-1">
+                                        <Clipboard className="w-4 h-4 mt-0.5 shrink-0" />
+                                        <span><strong>Prescription:</strong> {visit.prescription}</span>
+                                    </p>
+                                )}
+                                {!visit.diagnosis && !visit.prescription && (
+                                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-2 italic">
+                                        No diagnosis or prescription recorded for this visit yet.
+                                    </p>
+                                )}
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2 self-end sm:self-center">
-                            <button
-                                onClick={() => setSelectedRecord(record)}
-                                className="btn-secondary text-xs py-1.5 px-3"
-                            >
-                                <Eye className="w-4 h-4 mr-1" /> View
-                            </button>
-                            <a
-                                href={record.file}
-                                className="btn-primary text-xs py-1.5 px-3"
-                                download
-                            >
-                                <Download className="w-4 h-4 mr-1" /> PDF
-                            </a>
-                        </div>
-                    </motion.div>
-                ))}
+                        </motion.div>
+                    ))}
+                </div>
             </div>
 
-            {/* Modal for viewing a record (simplified) */}
-            {selectedRecord && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-                    onClick={() => setSelectedRecord(null)}
-                >
-                    <motion.div
-                        initial={{ scale: 0.9 }}
-                        animate={{ scale: 1 }}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                            {selectedRecord.title}
-                        </h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                            {selectedRecord.type} • {selectedRecord.doctor} • {selectedRecord.date}
+            {/* Billing / receipts */}
+            <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Bills & Receipts
+                </h2>
+                <div className="grid gap-4">
+                    {bills.length === 0 && (
+                        <p className="text-gray-500 dark:text-gray-400 text-center py-6">
+                            No bills yet.
                         </p>
-                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 text-sm text-gray-600 dark:text-gray-300">
-                            <p><strong>Status:</strong> {selectedRecord.status}</p>
-                            <p className="mt-2">
-                                <strong>Details:</strong> This is a placeholder record. Real documents would be displayed here or downloaded via the PDF link.
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => setSelectedRecord(null)}
-                            className="btn-secondary mt-6 w-full"
+                    )}
+                    {bills.map((bill) => (
+                        <motion.div
+                            key={bill.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="card flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                         >
-                            Close
-                        </button>
-                    </motion.div>
-                </motion.div>
-            )}
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                    <Receipt className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                                        {bill.invoice_number}
+                                    </h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {bill.description || 'Consultation'} • ${bill.total_amount?.toFixed(2)}
+                                    </p>
+                                    <span
+                                        className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${bill.payment_status === 'paid'
+                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                            }`}
+                                    >
+                                        {bill.payment_status}
+                                    </span>
+                                </div>
+                            </div>
+                            {bill.payment_status === 'paid' && (
+                                <button
+                                    onClick={() => downloadReceipt(bill.id, bill.invoice_number)}
+                                    className="btn-primary text-xs py-1.5 px-3 self-end sm:self-center"
+                                >
+                                    <Download className="w-4 h-4 mr-1" /> Receipt
+                                </button>
+                            )}
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 };

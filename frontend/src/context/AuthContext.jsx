@@ -29,6 +29,37 @@ export function AuthProvider({ children }) {
         setLoading(false);
     }, []);
 
+    // Keep auth state in sync across browser tabs. localStorage is shared
+    // per-origin across tabs, so if you log in as a different role in one
+    // tab, other open tabs would otherwise keep stale in-memory state (UI
+    // still shows the old role) while every API call silently uses
+    // whichever token is now in storage — a confusing mismatch.
+    useEffect(() => {
+        const handleStorage = (event) => {
+            if (event.key !== 'access_token') return;
+
+            if (!event.newValue) {
+                // Token removed (logged out in another tab)
+                setUser(null);
+                setPatient(null);
+                return;
+            }
+
+            const storedUser = localStorage.getItem('smartcare_user');
+            const storedPatient = localStorage.getItem('smartcare_patient');
+            try {
+                setUser(storedUser ? JSON.parse(storedUser) : null);
+                setPatient(storedPatient ? JSON.parse(storedPatient) : null);
+            } catch {
+                setUser(null);
+                setPatient(null);
+            }
+        };
+
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, []);
+
     const login = async (username, password) => {
         const res = await authAPI.login({ username, password });
         const { access_token, user: loggedInUser } = res.data;
@@ -37,7 +68,8 @@ export function AuthProvider({ children }) {
         localStorage.setItem('smartcare_user', JSON.stringify(loggedInUser));
         setUser(loggedInUser);
 
-        // Pull the linked patient record (if any) for patient accounts
+        // Pull the linked patient record (if any) for patient accounts;
+        // clear any stale patient data left over from a previous session.
         if (loggedInUser.role === 'patient') {
             try {
                 const profileRes = await authAPI.getProfile();
@@ -48,6 +80,9 @@ export function AuthProvider({ children }) {
             } catch {
                 // non-fatal — dashboard can still refetch as needed
             }
+        } else {
+            localStorage.removeItem('smartcare_patient');
+            setPatient(null);
         }
 
         if (loggedInUser.role === 'admin') {

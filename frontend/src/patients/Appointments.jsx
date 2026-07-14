@@ -4,6 +4,22 @@ import { Calendar, Clock, X, Edit3 } from 'lucide-react';
 import { appointmentAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
+const statusStyle = {
+    pending: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    scheduled: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    completed: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+    cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
+
+const statusLabel = {
+    pending: 'Awaiting approval',
+    scheduled: 'Confirmed',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    rejected: 'Rejected',
+};
+
 const Appointments = () => {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -27,12 +43,13 @@ const Appointments = () => {
     }, []);
 
     const cancelAppointment = async (id) => {
+        if (!window.confirm('Cancel this appointment?')) return;
         try {
-            await appointmentAPI.delete(id);
+            await appointmentAPI.updateStatus(id, 'cancelled');
             toast.success('Appointment cancelled');
             fetchAppointments();
         } catch (err) {
-            toast.error('Failed to cancel');
+            toast.error(err.response?.data?.error || 'Failed to cancel');
         }
     };
 
@@ -45,7 +62,7 @@ const Appointments = () => {
     const saveReschedule = async () => {
         try {
             await appointmentAPI.reschedule(rescheduleId, { date: newDate, time: newTime });
-            toast.success('Rescheduled successfully');
+            toast.success('Reschedule requested — awaiting approval');
             setRescheduleId(null);
             fetchAppointments();
         } catch (err) {
@@ -68,67 +85,68 @@ const Appointments = () => {
                 <p className="text-gray-500 dark:text-gray-400 text-center py-10">No appointments yet.</p>
             )}
             <div className="grid gap-4">
-                {appointments.map((apt) => (
-                    <motion.div
-                        key={apt.id}
-                        layout
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="card flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                    >
-                        <div className="flex items-start gap-4">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                                <Calendar className="w-6 h-6 text-primary" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-gray-900 dark:text-white">{apt.doctor_name}</h3>
-                                <div className="flex items-center gap-3 mt-1 text-sm">
-                                    <span className="text-gray-700 dark:text-gray-300">{apt.date}</span>
-                                    <span className="flex items-center gap-1 text-gray-700 dark:text-gray-300">
-                                        <Clock className="w-4 h-4" /> {apt.time}
+                {appointments.map((apt) => {
+                    const editable = apt.status === 'pending' || apt.status === 'scheduled';
+                    return (
+                        <motion.div
+                            key={apt.id}
+                            layout
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="card flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                        >
+                            <div className="flex items-start gap-4">
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                    <Calendar className="w-6 h-6 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900 dark:text-white">{apt.doctor_name}</h3>
+                                    <div className="flex items-center gap-3 mt-1 text-sm">
+                                        <span className="text-gray-700 dark:text-gray-300">{apt.date}</span>
+                                        <span className="flex items-center gap-1 text-gray-700 dark:text-gray-300">
+                                            <Clock className="w-4 h-4" /> {apt.time}
+                                        </span>
+                                    </div>
+                                    <span
+                                        className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium ${statusStyle[apt.status] || statusStyle.pending
+                                            }`}
+                                    >
+                                        {statusLabel[apt.status] || apt.status}
                                     </span>
                                 </div>
-                                <span
-                                    className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium ${apt.status === 'confirmed'
-                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                            : apt.status === 'pending'
-                                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                        }`}
-                                >
-                                    {apt.status}
-                                </span>
                             </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-center">
-                            <button onClick={() => startReschedule(apt)} className="p-2 text-gray-500 hover:text-primary transition-colors" title="Reschedule">
-                                <Edit3 className="w-5 h-5" />
-                            </button>
-                            <button onClick={() => cancelAppointment(apt.id)} className="p-2 text-gray-500 hover:text-red-500 transition-colors" title="Cancel">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <AnimatePresence>
-                            {rescheduleId === apt.id && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="w-full overflow-hidden"
-                                >
-                                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700 mt-2 flex flex-col sm:flex-row gap-3">
-                                        <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="input-field" />
-                                        <input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="input-field" />
-                                        <button onClick={saveReschedule} className="btn-primary whitespace-nowrap">Save</button>
-                                        <button onClick={() => setRescheduleId(null)} className="btn-secondary whitespace-nowrap">Cancel</button>
-                                    </div>
-                                </motion.div>
+                            {editable && (
+                                <div className="flex items-center gap-2 self-end sm:self-center">
+                                    <button onClick={() => startReschedule(apt)} className="p-2 text-gray-500 hover:text-primary transition-colors" title="Reschedule">
+                                        <Edit3 className="w-5 h-5" />
+                                    </button>
+                                    <button onClick={() => cancelAppointment(apt.id)} className="p-2 text-gray-500 hover:text-red-500 transition-colors" title="Cancel">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
                             )}
-                        </AnimatePresence>
-                    </motion.div>
-                ))}
+
+                            <AnimatePresence>
+                                {rescheduleId === apt.id && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="w-full overflow-hidden"
+                                    >
+                                        <div className="pt-4 border-t border-gray-200 dark:border-gray-700 mt-2 flex flex-col sm:flex-row gap-3">
+                                            <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="input-field" />
+                                            <input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="input-field" />
+                                            <button onClick={saveReschedule} className="btn-primary whitespace-nowrap">Save</button>
+                                            <button onClick={() => setRescheduleId(null)} className="btn-secondary whitespace-nowrap">Cancel</button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
+                    );
+                })}
             </div>
         </div>
     );

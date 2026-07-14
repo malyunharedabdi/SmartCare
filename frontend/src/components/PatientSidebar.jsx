@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 
 const links = [
     { to: '/patient/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/patient/appointments', icon: CalendarCheck, label: 'Appointments' },
+    { to: '/patient/appointments', icon: CalendarCheck, label: 'My Appointments' },
     { to: '/patient/book', icon: CalendarPlus, label: 'Book Appointment' },
     { to: '/patient/records', icon: FileText, label: 'Medical Records' },
     { to: '/patient/profile', icon: User, label: 'Profile' },

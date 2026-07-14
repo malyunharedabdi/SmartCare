@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 
 /* Common components */
@@ -46,6 +47,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <div className="min-h-screen flex flex-col bg-white dark:bg-black transition-colors duration-300">
+          <Toaster position="top-right" />
           <Navbar theme={theme} toggleTheme={toggleTheme} />
           <main className="flex-grow">
             <Routes>
