@@ -59,7 +59,7 @@ const Doctors = () => {
     return (
         <div className="pt-16">
             {/* Hero Banner */}
-            <section className="bg-primary text-white py-20">
+            <section className="py-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <motion.h1
                         initial={{ opacity: 0, y: -20 }}
@@ -73,7 +73,7 @@ const Doctors = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.2 }}
-                        className="text-xl text-white/90 max-w-2xl mx-auto"
+                        className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
                     >
                         Meet our team of dedicated Somali healthcare professionals.
                     </motion.p>
@@ -81,7 +81,7 @@ const Doctors = () => {
             </section>
 
             {/* Doctors Grid */}
-            <section className="py-20 bg-white dark:bg-black transition-colors duration-500">
+            <section className="py-20 transition-colors duration-500">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <motion.div
                         initial="hidden"

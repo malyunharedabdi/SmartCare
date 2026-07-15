@@ -44,7 +44,7 @@ const Services = () => {
     return (
         <div className="pt-16">
             {/* Hero Banner with 50/50 layout */}
-            <section className="min-h-[80vh] flex items-center bg-white dark:bg-black transition-colors duration-500">
+            <section className="min-h-[80vh] flex items-center transition-colors duration-500">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                         {/* Left side - Text */}
@@ -98,7 +98,7 @@ const Services = () => {
             </section>
 
             {/* Services Grid */}
-            <section className="py-20 bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
+            <section className="py-20 transition-colors duration-500">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <motion.div
                         initial="hidden"
@@ -133,7 +133,7 @@ const Services = () => {
             </section>
 
             {/* CTA Section */}
-            <section className="py-20 bg-white dark:bg-black transition-colors duration-500">
+            <section className="py-20 transition-colors duration-500">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <motion.h2
                         initial={{ opacity: 0, y: 20 }}

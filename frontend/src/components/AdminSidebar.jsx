@@ -22,7 +22,7 @@ const AdminSidebar = () => {
     const { logout } = useAuth();
 
     return (
-        <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-screen sticky top-16 flex flex-col">
+        <aside className="w-64 glass-panel border-r border-white/40 dark:border-white/5 h-screen sticky top-0 flex flex-col">
             <div className="p-6">
                 <h2 className="text-xl font-bold text-primary">Admin Panel</h2>
             </div>

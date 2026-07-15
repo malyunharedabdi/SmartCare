@@ -34,7 +34,7 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex pt-16 bg-white dark:bg-black transition-colors duration-500">
+        <div className="min-h-screen flex pt-16 transition-colors duration-500">
             <div className="flex w-full">
                 {/* Left – Image */}
                 <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">

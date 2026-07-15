@@ -25,7 +25,7 @@ const About = () => {
     return (
         <div className="pt-16">
             {/* Hero Banner */}
-            <section className="bg-primary text-white py-20">
+            <section className="py-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <motion.h1
                         initial={{ opacity: 0, y: -20 }}
@@ -39,7 +39,7 @@ const About = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.2 }}
-                        className="text-xl text-white/90 max-w-2xl mx-auto"
+                        className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
                     >
                         Dedicated to providing exceptional healthcare for you and your family since 1998.
                     </motion.p>
@@ -47,7 +47,7 @@ const About = () => {
             </section>
 
             {/* Mission & Vision – 50/50 */}
-            <section className="py-20 bg-white dark:bg-black transition-colors duration-500">
+            <section className="py-20 transition-colors duration-500">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                         <motion.div
@@ -103,7 +103,7 @@ const About = () => {
             </section>
 
             {/* Core Values */}
-            <section className="py-20 bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
+            <section className="py-20 transition-colors duration-500">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

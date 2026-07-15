@@ -3,24 +3,25 @@
 /* Enable class-based dark mode so .dark on <html> triggers dark: utilities */
 @variant dark (&:where(.dark, .dark *));
 
-/* Your brand colours */
+/* Brand colours — soft glass-green identity */
 @theme {
-  --color-primary: #0096C7;
-  --color-primary-light: #00B4E0;
-  --color-primary-dark: #007A9E;
+  --color-primary: #6bbf4a;
+  --color-primary-light: #96e072;
+  --color-primary-dark: #4f9e33;
+  --color-primary-pale: #e6f7dd;
 }
 
 /* Base styles */
 @layer base {
   body {
-    background-color: white;
-    color: #111827;
+    background-color: #f4faf1;
+    color: #10231a;
     transition: background-color 0.3s, color 0.3s;
   }
 
   .dark body {
-    background-color: black;
-    color: white;
+    background-color: #060b08;
+    color: #eafaf0;
   }
 
   html {
@@ -28,31 +29,83 @@
   }
 
   *:focus-visible {
-    outline: 2px solid #0096C7;
+    outline: 2px solid #6bbf4a;
     outline-offset: 2px;
   }
 }
 
-/* Reusable component classes */
+/* Ambient decorative background — fixed, non-scrolling blurred blobs that
+   give the glass surfaces above them something to actually refract.
+   Rendered once in App.jsx, behind everything, pointer-events-none. */
+@layer components {
+  .ambient-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .ambient-bg span {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(90px);
+    opacity: 0.55;
+  }
+
+  .dark .ambient-bg span {
+    opacity: 0.3;
+  }
+
+  .ambient-bg .blob-1 {
+    width: 32rem;
+    height: 32rem;
+    top: -10rem;
+    left: -8rem;
+    background: radial-gradient(circle at 30% 30%, #96e072, transparent 70%);
+  }
+
+  .ambient-bg .blob-2 {
+    width: 26rem;
+    height: 26rem;
+    top: 20rem;
+    right: -10rem;
+    background: radial-gradient(circle at 70% 40%, #6bbf4a, transparent 70%);
+  }
+
+  .ambient-bg .blob-3 {
+    width: 30rem;
+    height: 30rem;
+    bottom: -12rem;
+    left: 30%;
+    background: radial-gradient(circle at 50% 50%, #b8edb0, transparent 70%);
+  }
+}
+
+/* Reusable component classes — glassmorphism throughout */
 @layer components {
   .btn-primary {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background-color: #0096C7;
-    color: white;
+    background: linear-gradient(135deg, #96e072, #6bbf4a);
+    color: #0c2211;
     font-weight: 600;
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    border-radius: 0.9rem;
+    box-shadow: 0 8px 20px rgba(107, 191, 74, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transition: all 0.25s ease;
     cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.3);
   }
 
   .btn-primary:hover {
-    background-color: #007A9E;
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
-    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(107, 191, 74, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0) scale(0.98);
   }
 
   .btn-outline {
@@ -60,56 +113,130 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    border: 2px solid #0096C7;
-    color: #0096C7;
+    border: 1.5px solid rgba(107, 191, 74, 0.5);
+    color: #4f9e33;
     font-weight: 600;
-    border-radius: 0.75rem;
-    background-color: transparent;
-    transition: all 0.3s ease;
+    border-radius: 0.9rem;
+    background-color: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(12px);
+    transition: all 0.25s ease;
     cursor: pointer;
   }
 
+  .dark .btn-outline {
+    color: #96e072;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
   .btn-outline:hover {
-    background-color: #0096C7;
-    color: white;
+    background-color: rgba(107, 191, 74, 0.15);
+    border-color: #6bbf4a;
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: #374151;
+    font-weight: 600;
+    border-radius: 0.9rem;
+    background-color: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px);
+    transition: all 0.25s ease;
+    cursor: pointer;
+  }
+
+  .dark .btn-secondary {
+    color: #e5e7eb;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-secondary:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .dark .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   .input-field {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.75rem;
+    border: 1px solid rgba(107, 191, 74, 0.25);
+    border-radius: 0.9rem;
     outline: none;
-    transition: all 0.3s ease;
-    background-color: white;
-    color: #111827;
+    transition: all 0.25s ease;
+    background-color: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    color: #10231a;
   }
 
   .dark .input-field {
-    background-color: #1f2937;
-    border-color: #374151;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(150, 224, 114, 0.2);
     color: white;
   }
 
   .input-field:focus {
-    border-color: #0096C7;
-    box-shadow: 0 0 0 3px rgba(0, 150, 199, 0.2);
+    border-color: #6bbf4a;
+    box-shadow: 0 0 0 3px rgba(107, 191, 74, 0.2);
+    background-color: rgba(255, 255, 255, 0.85);
   }
 
+  .dark .input-field:focus {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Liquid-glass card: translucent surface + inner edge highlight so it
+     reads as glass rather than a flat tinted box. */
   .card {
-    background-color: white;
-    border-radius: 1rem;
+    background-color: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 1.25rem;
     padding: 1.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.3s ease;
+    box-shadow:
+      0 8px 32px rgba(16, 35, 26, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
   }
 
   .dark .card {
-    background-color: #111827;
-    box-shadow: 0 4px 6px rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
   .card:hover {
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 16px 40px rgba(16, 35, 26, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    border-color: rgba(107, 191, 74, 0.35);
+    transform: translateY(-2px);
+  }
+
+  .dark .card:hover {
+    border-color: rgba(150, 224, 114, 0.25);
+  }
+
+  /* Glass surface for the navbar / sidebars — a slightly stronger blur
+     since it sits over scrolling content. */
+  .glass-panel {
+    background-color: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  .dark .glass-panel {
+    background-color: rgba(10, 20, 14, 0.6);
+    border-color: rgba(255, 255, 255, 0.08);
   }
 }
