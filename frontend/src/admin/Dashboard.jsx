@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router';
 import {
     Users,
     UserPlus,
     CalendarCheck,
     DollarSign,
+    UserCog,
+    ClipboardList,
+    LineChart,
+    ArrowRight,
+    LayoutGrid,
 } from 'lucide-react';
 import {
     AreaChart,
@@ -16,6 +22,13 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { patientAPI, doctorAPI, appointmentAPI, billingAPI } from '../services/api';
+
+const quickActions = [
+    { to: '/admin/appointments', icon: ClipboardList, label: 'Appointments', desc: 'Approve, reject & manage' },
+    { to: '/admin/doctors', icon: UserCog, label: 'Doctors', desc: 'Manage medical staff' },
+    { to: '/admin/patients', icon: Users, label: 'Patients', desc: 'View & manage patients' },
+    { to: '/admin/analytics', icon: LineChart, label: 'Analytics', desc: 'Reports & insights' },
+];
 
 const statusStyle = {
     pending: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -95,9 +108,34 @@ const AdminDashboard = () => {
 
     return (
         <div className="space-y-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Admin Dashboard
-            </h1>
+            <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-primary/15 rounded-2xl flex items-center justify-center shrink-0">
+                    <LayoutGrid className="w-6 h-6 text-primary-dark dark:text-primary-light" />
+                </div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    Admin Dashboard
+                </h1>
+            </div>
+
+            {/* Quick actions bento */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {quickActions.map((a, idx) => (
+                    <motion.div
+                        key={a.to}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.06 }}
+                    >
+                        <Link to={a.to} className="card flex flex-col gap-2 h-full group">
+                            <div className="w-10 h-10 bg-primary/15 rounded-xl flex items-center justify-center group-hover:bg-primary/25 transition-colors">
+                                <a.icon className="w-5 h-5 text-primary-dark dark:text-primary-light" />
+                            </div>
+                            <p className="font-semibold text-gray-900 dark:text-white text-sm">{a.label}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{a.desc}</p>
+                        </Link>
+                    </motion.div>
+                ))}
+            </div>
 
             {/* Stats cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

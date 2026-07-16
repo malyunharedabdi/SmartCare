@@ -55,9 +55,20 @@ def seed():
         # ---- DOCTORS ----
         doctors = []
         doctors_data = [
-            {'name':'Dr. Ayaan Ali','specialization':'Cardiologist','email':'ayaan.doctor@example.com','phone':'+252 61 111 0001'},
-            {'name':'Dr. Mohamed Hassan','specialization':'Neurologist','email':'mohamed.doctor@example.com','phone':'+252 61 111 0002'},
-            {'name':'Dr. Fatima Nur','specialization':'Pediatrician','email':'fatima.doctor@example.com','phone':'+252 61 111 0003'},
+            {'name': 'Dr. Ayaan Ali', 'specialization': 'Cardiologist', 'email': 'ayaan.doctor@example.com', 'phone': '+252 61 111 0001', 'department': 'Cardiology', 'qualification': 'MD, FACC', 'experience': 14, 'consultation_fee': 45},
+            {'name': 'Dr. Mohamed Hassan', 'specialization': 'Neurologist', 'email': 'mohamed.doctor@example.com', 'phone': '+252 61 111 0002', 'department': 'Neurology', 'qualification': 'MD, PhD', 'experience': 11, 'consultation_fee': 50},
+            {'name': 'Dr. Fatima Nur', 'specialization': 'Pediatrician', 'email': 'fatima.doctor@example.com', 'phone': '+252 61 111 0003', 'department': 'Pediatrics', 'qualification': 'MD, FAAP', 'experience': 9, 'consultation_fee': 35},
+            {'name': 'Dr. Hodan Warsame', 'specialization': 'Dermatologist', 'email': 'hodan.doctor@example.com', 'phone': '+252 61 111 0004', 'department': 'Dermatology', 'qualification': 'MD', 'experience': 7, 'consultation_fee': 40},
+            {'name': 'Dr. Abdirahman Yusuf', 'specialization': 'Orthopedic Surgeon', 'email': 'abdirahman.doctor@example.com', 'phone': '+252 61 111 0005', 'department': 'Orthopedics', 'qualification': 'MD, MS Ortho', 'experience': 16, 'consultation_fee': 55},
+            {'name': 'Dr. Sahra Ismail', 'specialization': 'Gynecologist', 'email': 'sahra.doctor@example.com', 'phone': '+252 61 111 0006', 'department': 'Obstetrics & Gynecology', 'qualification': 'MD, FRCOG', 'experience': 12, 'consultation_fee': 45},
+            {'name': 'Dr. Yusuf Abdullahi', 'specialization': 'General Physician', 'email': 'yusuf.doctor@example.com', 'phone': '+252 61 111 0007', 'department': 'General Medicine', 'qualification': 'MBBS, MD', 'experience': 8, 'consultation_fee': 25},
+            {'name': 'Dr. Amina Farah', 'specialization': 'ENT Specialist', 'email': 'amina.doctor@example.com', 'phone': '+252 61 111 0008', 'department': 'ENT', 'qualification': 'MD, ENT', 'experience': 10, 'consultation_fee': 40},
+            {'name': 'Dr. Cabdi Rashiid', 'specialization': 'Ophthalmologist', 'email': 'cabdi.doctor@example.com', 'phone': '+252 61 111 0009', 'department': 'Ophthalmology', 'qualification': 'MD, Eye Surgery', 'experience': 13, 'consultation_fee': 40},
+            {'name': 'Dr. Ilhan Osman', 'specialization': 'Psychiatrist', 'email': 'ilhan.doctor@example.com', 'phone': '+252 61 111 0010', 'department': 'Mental Health', 'qualification': 'MD, Psychiatry', 'experience': 9, 'consultation_fee': 50},
+            {'name': 'Dr. Xasan Cali', 'specialization': 'Gastroenterologist', 'email': 'xasan.doctor@example.com', 'phone': '+252 61 111 0011', 'department': 'Gastroenterology', 'qualification': 'MD, GI Fellowship', 'experience': 15, 'consultation_fee': 50},
+            {'name': 'Dr. Nasra Jama', 'specialization': 'Dentist', 'email': 'nasra.doctor@example.com', 'phone': '+252 61 111 0012', 'department': 'Dentistry', 'qualification': 'DDS', 'experience': 6, 'consultation_fee': 30},
+            {'name': 'Dr. Khalid Warfaa', 'specialization': 'Urologist', 'email': 'khalid.doctor@example.com', 'phone': '+252 61 111 0013', 'department': 'Urology', 'qualification': 'MD, Urology', 'experience': 12, 'consultation_fee': 45},
+            {'name': 'Dr. Sagal Maxamed', 'specialization': 'Pulmonologist', 'email': 'sagal.doctor@example.com', 'phone': '+252 61 111 0014', 'department': 'Pulmonology', 'qualification': 'MD, Chest Medicine', 'experience': 11, 'consultation_fee': 45},
         ]
         for d in doctors_data:
             doc = Doctor(**d)

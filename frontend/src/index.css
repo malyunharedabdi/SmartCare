@@ -9,11 +9,15 @@
   --color-primary-light: #96e072;
   --color-primary-dark: #4f9e33;
   --color-primary-pale: #e6f7dd;
+  /* 👇 Added: make Plus Jakarta Sans the default sans-serif */
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Base styles */
 @layer base {
   body {
+    /* 👇 Added: apply the font globally */
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     background-color: #f4faf1;
     color: #10231a;
     transition: background-color 0.3s, color 0.3s;
