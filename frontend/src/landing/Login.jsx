@@ -133,9 +133,7 @@ const Login = () => {
                                 Sign up
                             </Link>
                         </p>
-                        <p className="mt-2 text-center text-xs text-gray-400 dark:text-gray-500">
-                            Demo: admin / admin123 &nbsp;|&nbsp; patient1 / patient123
-                        </p>
+                        
                     </motion.div>
                 </div>
             </div>
