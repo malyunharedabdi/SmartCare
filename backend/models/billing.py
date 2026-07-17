@@ -17,6 +17,8 @@ class Billing(db.Model):
     tax_amount = db.Column(db.Float, default=0.0)
     discount = db.Column(db.Float, default=0.0)
     total_amount = db.Column(db.Float, nullable=False)
+    transaction_id = db.Column(db.String(50))
+    payer_reference = db.Column(db.String(120))
 
     appointment = db.relationship('Appointment', backref='bills')
 
@@ -35,5 +37,7 @@ class Billing(db.Model):
             'invoice_number': self.invoice_number,
             'tax_amount': self.tax_amount,
             'discount': self.discount,
-            'total_amount': self.total_amount
+            'total_amount': self.total_amount,
+            'transaction_id': self.transaction_id,
+            'payer_reference': self.payer_reference
         }

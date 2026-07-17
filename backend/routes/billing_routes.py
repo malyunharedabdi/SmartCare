@@ -6,6 +6,8 @@ from models.user import User
 from app import db
 from datetime import datetime
 import io
+import random
+import string
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
@@ -82,16 +84,54 @@ def create_bill():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+def _generate_transaction_id(method):
+    """Build a fake but plausible-looking transaction reference per payment channel."""
+    suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    prefixes = {
+        'mpesa': ''.join(random.choices(string.ascii_uppercase, k=2)) + ''.join(random.choices(string.digits, k=6)),
+        'card': f'CARD-{suffix}',
+        'paypal': f'PP-{suffix}',
+        'bank_transfer': f'BNK-{suffix}',
+        'cash': f'CSH-{suffix}',
+    }
+    return prefixes.get(method, f'TXN-{suffix}')
+
+
 @billing_bp.route('/bills/<int:id>/pay', methods=['PUT'])
 @jwt_required()
 def process_payment(id):
     try:
+        claims = get_jwt()
         bill = Billing.query.get_or_404(id)
-        data = request.get_json()
+        data = request.get_json() or {}
+
+        # Patients may only pay their own bills; admins can record payment on anyone's bill.
+        if claims.get('role') == 'patient':
+            user = _current_user()
+            if not user or not user.patient or bill.patient_id != user.patient.id:
+                return jsonify({'error': 'Unauthorized'}), 403
+
+        if bill.payment_status == 'paid':
+            return jsonify({'error': 'This bill has already been paid'}), 400
+
+        method = data.get('payment_method', 'cash')
+        payer_reference = data.get('payer_reference')
+
+        # Simulated gateway: card/mpesa/paypal have a small realistic chance of
+        # a "declined" outcome so the flow isn't a rubber-stamp success every time.
+        if method in ('card', 'mpesa', 'paypal') and not data.get('force_success'):
+            if random.random() < 0.08:
+                return jsonify({
+                    'error': 'Payment declined by the simulated gateway. Please try again.',
+                    'simulated': True
+                }), 402
 
         bill.payment_status = 'paid'
-        bill.payment_method = data.get('payment_method', 'cash')
+        bill.payment_method = method
         bill.payment_date = datetime.utcnow()
+        bill.transaction_id = _generate_transaction_id(method)
+        if payer_reference:
+            bill.payer_reference = payer_reference
 
         db.session.commit()
 

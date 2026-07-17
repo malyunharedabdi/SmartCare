@@ -5,6 +5,7 @@ import {
     UserPlus,
     CalendarCheck,
     BarChart3,
+    Receipt,
     Settings,
     LogOut,
 } from 'lucide-react';
@@ -15,6 +16,7 @@ const links = [
     { to: '/admin/patients', icon: Users, label: 'Patients' },
     { to: '/admin/doctors', icon: UserPlus, label: 'Doctors' },
     { to: '/admin/appointments', icon: CalendarCheck, label: 'Appointments' },
+    { to: '/admin/payments', icon: Receipt, label: 'Payments' },
     { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
 ];
 

@@ -100,7 +100,7 @@ const Signup = () => {
                                     value={formData.username}
                                     onChange={handleChange}
                                     className="input-field"
-                                    placeholder="binka"
+                                    placeholder="Haima"
                                     required
                                 />
                             </div>
@@ -147,7 +147,7 @@ const Signup = () => {
                                     value={formData.phone}
                                     onChange={handleChange}
                                     className="input-field"
-                                    placeholder="+252 61 234 5678"
+                                    placeholder="+254 712 346 567"
                                 />
                             </div>
 

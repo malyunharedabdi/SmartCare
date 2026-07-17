@@ -23,6 +23,7 @@ import PatientDashboard from './patients/Dashboard';
 import PatientAppointments from './patients/Appointments';
 import BookAppointment from './patients/BookAppointment';
 import MedicalRecords from './patients/MedicalRecords';
+import Billing from './patients/Billing';
 import Profile from './patients/Profile';
 
 /* Admin dashboard */
@@ -31,6 +32,7 @@ import AdminDashboard from './admin/Dashboard';
 import AdminPatients from './admin/Patients';
 import AdminDoctors from './admin/Doctors';
 import AdminAppointments from './admin/Appointments';   // ← new import
+import AdminPayments from './admin/Payments';
 import AdminAnalytics from './admin/Analytics';
 
 function AppContent({ theme, toggleTheme }) {
@@ -74,6 +76,7 @@ function AppContent({ theme, toggleTheme }) {
             <Route path="appointments" element={<PatientAppointments />} />
             <Route path="book" element={<BookAppointment />} />
             <Route path="records" element={<MedicalRecords />} />
+            <Route path="billing" element={<Billing />} />
             <Route path="profile" element={<Profile />} />
           </Route>
 
@@ -91,6 +94,7 @@ function AppContent({ theme, toggleTheme }) {
             <Route path="patients" element={<AdminPatients />} />
             <Route path="doctors" element={<AdminDoctors />} />
             <Route path="appointments" element={<AdminAppointments />} />   {/* ← new route */}
+            <Route path="payments" element={<AdminPayments />} />
             <Route path="analytics" element={<AdminAnalytics />} />
           </Route>
         </Routes>

@@ -4,6 +4,7 @@ import {
     CalendarCheck,
     CalendarPlus,
     FileText,
+    Wallet,
     User,
     LogOut,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ const links = [
     { to: '/patient/appointments', icon: CalendarCheck, label: 'My Appointments' },
     { to: '/patient/book', icon: CalendarPlus, label: 'Book Appointment' },
     { to: '/patient/records', icon: FileText, label: 'Medical Records' },
+    { to: '/patient/billing', icon: Wallet, label: 'Billing & Payments' },
     { to: '/patient/profile', icon: User, label: 'Profile' },
 ];
 

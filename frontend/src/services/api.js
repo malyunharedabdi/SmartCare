@@ -60,7 +60,12 @@ export const billingAPI = {
     return api.get(`/bills?${params}`);
   },
   create: (data) => api.post('/bills', data),
-  pay: (id, method) => api.put(`/bills/${id}/pay`, { payment_method: method }),
+  // Accepts either a plain method string ('cash') or a details object
+  // ({ payment_method, payer_reference, force_success }) for the simulated checkout flow.
+  pay: (id, payload) => {
+    const body = typeof payload === 'string' ? { payment_method: payload } : payload;
+    return api.put(`/bills/${id}/pay`, body);
+  },
   getReceipt: (id) => api.get(`/bills/${id}/receipt`, { responseType: 'blob' }),
 };
 
